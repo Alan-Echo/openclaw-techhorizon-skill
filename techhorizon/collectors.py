@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
-TechHorizon 最终版数据收集器模块
-处理Gitee和OSChina的反爬虫问题
+TechHorizon 数据收集器模块 - 修复版（无模拟数据，移除Gitee）
 """
 
 import json
@@ -54,7 +53,7 @@ class GitHubTrendingCollector(BaseCollector):
     def __init__(self):
         super().__init__("github_trending")
     
-    def collect(self, limit: int = 25) -> List[Dict[str, Any]]:
+    def collect(self, limit: int = 30) -> List[Dict[str, Any]]:
         """收集GitHub热门项目"""
         try:
             url = "https://github.com/trending"
@@ -90,28 +89,6 @@ class GitHubTrendingCollector(BaseCollector):
             print(f"Error collecting GitHub Trending: {e}")
             return []
 
-class GiteeTrendingCollector(BaseCollector):
-    """Gitee Trending 收集器 - 由于反爬虫限制，暂时返回空数据"""
-    
-    def __init__(self):
-        super().__init__("gitee_trending")
-    
-    def collect(self, limit: int = 25) -> List[Dict[str, Any]]:
-        """
-        Gitee有严格的反爬虫机制，直接请求会返回405错误。
-        暂时返回空列表，建议后续使用浏览器自动化或寻找替代方案。
-        """
-        print("Gitee collection skipped due to anti-bot protection")
-        return []
-        
-        # 备选方案：如果需要实现，可以考虑以下方法：
-        # 1. 使用Playwright/Selenium进行浏览器自动化
-        # 2. 寻找Gitee的公开API或第三方数据源
-        # 3. 使用代理IP轮换
-        
-        # 当前返回空数据以避免程序崩溃
-        return []
-
 class HackerNewsCollector(BaseCollector):
     """Hacker News 收集器"""
     
@@ -119,7 +96,7 @@ class HackerNewsCollector(BaseCollector):
         super().__init__("hacker_news")
         self.api_base = "https://hacker-news.firebaseio.com/v0"
     
-    def collect(self, limit: int = 30) -> List[Dict[str, Any]]:
+    def collect(self, limit: int = 35) -> List[Dict[str, Any]]:
         """收集Hacker News热门话题"""
         try:
             top_stories = self.fetch_json(f"{self.api_base}/topstories.json")
@@ -129,7 +106,7 @@ class HackerNewsCollector(BaseCollector):
             events = []
             for story_id in top_stories[:limit]:
                 story = self.fetch_json(f"{self.api_base}/item/{story_id}.json")
-                if story and story.get('score', 0) > 10:  # 降低分数阈值以获取更多数据
+                if story and story.get('score', 0) > 10:
                     event = {
                         "title": story.get('title', ''),
                         "description": f"Hacker News discussion with {story.get('score', 0)} points and {story.get('descendants', 0)} comments",
@@ -151,7 +128,7 @@ class ReadHubCollector(BaseCollector):
     def __init__(self):
         super().__init__("readhub")
     
-    def collect(self, limit: int = 20) -> List[Dict[str, Any]]:
+    def collect(self, limit: int = 25) -> List[Dict[str, Any]]:
         """收集ReadHub科技新闻"""
         try:
             news_data = self.fetch_json("https://api.readhub.cn/news")
@@ -179,7 +156,7 @@ class OSChinaCollector(BaseCollector):
     def __init__(self):
         super().__init__("oschina")
     
-    def collect(self, limit: int = 15) -> List[Dict[str, Any]]:
+    def collect(self, limit: int = 20) -> List[Dict[str, Any]]:
         """通过RSS收集开源中国数据"""
         rss_sources = [
             'https://www.oschina.net/news/rss',
@@ -215,44 +192,20 @@ class JuejinCollector(BaseCollector):
     def __init__(self):
         super().__init__("juejin")
     
-    def collect(self, limit: int = 15) -> List[Dict[str, Any]]:
+    def collect(self, limit: int = 20) -> List[Dict[str, Any]]:
         """收集掘金热门文章"""
         try:
-            # 掘金API
-            url = "https://api.juejin.cn/recommend_api/v1/article/recommend_all_feed"
-            data = {
-                "id_type": 2,
-                "sort_type": 2,
-                "feed_type": 1,
-                "cursor": "0",
-                "limit": limit
-            }
+            # 掘金API - 需要找到正确的API端点
+            # 暂时返回空列表，后续需要修复API
+            print("Juejin API needs to be fixed - returning empty list")
+            return []
             
-            response = self.session.post(url, json=data, timeout=10)
-            response.raise_for_status()
-            result = response.json()
-            
-            if result.get('err_msg') != 'success':
-                return []
-            
-            events = []
-            for item in result.get('data', [])[:limit]:
-                article_info = item.get('article_info', {})
-                event = {
-                    "title": article_info.get('title', ''),
-                    "description": article_info.get('brief_content', ''),
-                    "url": f"https://juejin.cn/post/{article_info.get('article_id', '')}",
-                    "source": self.name
-                }
-                events.append(event)
-            
-            return events
         except Exception as e:
             print(f"Error collecting Juejin: {e}")
             return []
 
 class SecurityVulnCollector(BaseCollector):
-    """安全漏洞收集器"""
+    """安全漏洞收集器 - 修复版（无模拟数据）"""
     
     def __init__(self):
         super().__init__("security_vuln")
@@ -266,7 +219,6 @@ class SecurityVulnCollector(BaseCollector):
             url = "https://api.github.com/advisories"
             params = {'per_page': min(limit, 20)}
             
-            # 注意：可能需要认证token来获取完整数据
             response = self.session.get(url, params=params, timeout=10)
             if response.status_code == 200:
                 advisories = response.json()
@@ -278,26 +230,10 @@ class SecurityVulnCollector(BaseCollector):
                         "source": self.name
                     }
                     events.append(event)
-            else:
-                # 如果没有认证，返回一些示例数据
-                for i in range(min(limit, 10)):
-                    events.append({
-                        "title": f"Security Vulnerability Example {i+1}",
-                        "description": "Example security vulnerability description",
-                        "url": "https://github.com/advisories",
-                        "source": self.name
-                    })
+            # 如果认证失败或其他错误，直接返回空列表
                     
         except Exception as e:
             print(f"Error collecting security vulnerabilities: {e}")
-            # 返回示例数据
-            for i in range(min(limit, 10)):
-                events.append({
-                    "title": f"Security Vulnerability Example {i+1}",
-                    "description": "Example security vulnerability description",
-                    "url": "https://github.com/advisories",
-                    "source": self.name
-                })
         
         return events[:limit]
 
@@ -307,7 +243,7 @@ class TechBlogsCollector(BaseCollector):
     def __init__(self):
         super().__init__("tech_blogs")
     
-    def collect(self, limit: int = 10) -> List[Dict[str, Any]]:
+    def collect(self, limit: int = 15) -> List[Dict[str, Any]]:
         """收集各大厂技术博客"""
         blog_sources = [
             {
@@ -318,6 +254,21 @@ class TechBlogsCollector(BaseCollector):
             {
                 'name': 'AWS Blog',
                 'url': 'https://aws.amazon.com/blogs/aws/feed/',
+                'is_rss': True
+            },
+            {
+                'name': 'Google AI Blog',
+                'url': 'https://ai.googleblog.com/feeds/posts/default',
+                'is_rss': True
+            },
+            {
+                'name': 'Facebook Engineering',
+                'url': 'https://engineering.fb.com/feed/',
+                'is_rss': True
+            },
+            {
+                'name': 'Apple Developer',
+                'url': 'https://developer.apple.com/news/rss/news.rss',
                 'is_rss': True
             }
         ]
@@ -356,10 +307,9 @@ class TechBlogsCollector(BaseCollector):
         
         return events[:limit]
 
-# 导出所有收集器
+# 导出所有收集器（已移除Gitee）
 COLLECTORS = {
     'github_trending': GitHubTrendingCollector(),
-    'gitee_trending': GiteeTrendingCollector(),
     'hacker_news': HackerNewsCollector(),
     'readhub': ReadHubCollector(),
     'oschina': OSChinaCollector(),
@@ -369,19 +319,18 @@ COLLECTORS = {
 }
 
 def collect_all_sources() -> List[Dict[str, Any]]:
-    """从所有数据源收集数据"""
+    """从所有数据源收集数据（已移除Gitee）"""
     all_events = []
     
-    # 配置每个数据源的收集数量
+    # 配置每个数据源的收集数量（调整后保持总量平衡）
     source_limits = {
-        'github_trending': 25,
-        'gitee_trending': 25,
-        'hacker_news': 30,
-        'readhub': 20,
-        'oschina': 15,
-        'juejin': 15,
-        'security_vuln': 20,
-        'tech_blogs': 10,
+        'github_trending': 30,      # 增加5条
+        'hacker_news': 35,          # 增加5条  
+        'readhub': 25,              # 增加5条
+        'oschina': 20,              # 增加5条
+        'juejin': 20,               # 增加5条（需要修复API）
+        'security_vuln': 20,        # 保持不变
+        'tech_blogs': 15,           # 增加5条
     }
     
     for source_name, collector in COLLECTORS.items():

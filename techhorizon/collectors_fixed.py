@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
-TechHorizon 最终版数据收集器模块
-处理Gitee和OSChina的反爬虫问题
+TechHorizon 数据收集器模块 - 修复版（无模拟数据）
 """
 
 import json
@@ -91,7 +90,7 @@ class GitHubTrendingCollector(BaseCollector):
             return []
 
 class GiteeTrendingCollector(BaseCollector):
-    """Gitee Trending 收集器 - 由于反爬虫限制，暂时返回空数据"""
+    """Gitee Trending 收集器 - 由于反爬虫限制，返回空数据"""
     
     def __init__(self):
         super().__init__("gitee_trending")
@@ -99,17 +98,9 @@ class GiteeTrendingCollector(BaseCollector):
     def collect(self, limit: int = 25) -> List[Dict[str, Any]]:
         """
         Gitee有严格的反爬虫机制，直接请求会返回405错误。
-        暂时返回空列表，建议后续使用浏览器自动化或寻找替代方案。
+        返回空列表以符合要求。
         """
         print("Gitee collection skipped due to anti-bot protection")
-        return []
-        
-        # 备选方案：如果需要实现，可以考虑以下方法：
-        # 1. 使用Playwright/Selenium进行浏览器自动化
-        # 2. 寻找Gitee的公开API或第三方数据源
-        # 3. 使用代理IP轮换
-        
-        # 当前返回空数据以避免程序崩溃
         return []
 
 class HackerNewsCollector(BaseCollector):
@@ -252,7 +243,7 @@ class JuejinCollector(BaseCollector):
             return []
 
 class SecurityVulnCollector(BaseCollector):
-    """安全漏洞收集器"""
+    """安全漏洞收集器 - 修复版（无模拟数据）"""
     
     def __init__(self):
         super().__init__("security_vuln")
@@ -266,7 +257,6 @@ class SecurityVulnCollector(BaseCollector):
             url = "https://api.github.com/advisories"
             params = {'per_page': min(limit, 20)}
             
-            # 注意：可能需要认证token来获取完整数据
             response = self.session.get(url, params=params, timeout=10)
             if response.status_code == 200:
                 advisories = response.json()
@@ -278,26 +268,11 @@ class SecurityVulnCollector(BaseCollector):
                         "source": self.name
                     }
                     events.append(event)
-            else:
-                # 如果没有认证，返回一些示例数据
-                for i in range(min(limit, 10)):
-                    events.append({
-                        "title": f"Security Vulnerability Example {i+1}",
-                        "description": "Example security vulnerability description",
-                        "url": "https://github.com/advisories",
-                        "source": self.name
-                    })
+            # 如果认证失败或其他错误，直接返回空列表（不再使用模拟数据）
                     
         except Exception as e:
             print(f"Error collecting security vulnerabilities: {e}")
-            # 返回示例数据
-            for i in range(min(limit, 10)):
-                events.append({
-                    "title": f"Security Vulnerability Example {i+1}",
-                    "description": "Example security vulnerability description",
-                    "url": "https://github.com/advisories",
-                    "source": self.name
-                })
+            # 直接返回空列表，不使用模拟数据
         
         return events[:limit]
 

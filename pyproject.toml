@@ -15,3 +15,6 @@ dependencies = [
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["techhorizon*"]
+
+[project.scripts]
+techhorizon = "techhorizon.main:main"
