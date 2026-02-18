@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_backend"
+
+[project]
+name = "techhorizon"
+version = "1.0.0"
+description = "IT/编程/科技技术界情报收集分析工具"
+authors = [{name = "Your Name", email = "your.email@example.com"}]
+requires-python = ">=3.8"
+dependencies = [
+    "requests>=2.25.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["techhorizon*"]
